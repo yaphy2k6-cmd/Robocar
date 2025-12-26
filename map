@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Real-Time GPS Tracking with Accuracy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .info-box {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      z-index: 1000;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+
+<div class="info-box">
+  <div><b>Latitude:</b> <span id="lat">-</span></div>
+  <div><b>Longitude:</b> <span id="lng">-</span></div>
+  <div><b>Accuracy:</b> <span id="acc">-</span> m</div>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+  // 初始化地图
+  const map = L.map('map').setView([0, 0], 19);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 21,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  // 当前定位蓝点
+  const marker = L.circleMarker([0, 0], {
+    radius: 8,
+    color: 'blue',
+    fillColor: 'blue',
+    fillOpacity: 0.9
+  }).addTo(map);
+
+  // GPS 精度圈（Accuracy Circle）
+  const accuracyCircle = L.circle([0, 0], {
+    radius: 0,
+    color: 'blue',
+    fillColor: 'blue',
+    fillOpacity: 0.15,
+    weight: 1
+  }).addTo(map);
+
+  // 路径
+  const path = [];
+  const polyline = L.polyline(path, {
+    color: 'red',
+    weight: 4
+  }).addTo(map);
+
+  let firstFix = true;
+
+  navigator.geolocation.watchPosition(
+    (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const acc = position.coords.accuracy; // meters
+
+      // 显示数据
+      document.getElementById('lat').textContent = lat.toFixed(6);
+      document.getElementById('lng').textContent = lng.toFixed(6);
+      document.getElementById('acc').textContent = acc.toFixed(1);
+
+      // 更新蓝点
+      marker.setLatLng([lat, lng]);
+
+      // 更新精度圈
+      accuracyCircle.setLatLng([lat, lng]);
+      accuracyCircle.setRadius(acc);
+
+      // 记录轨迹
+      path.push([lat, lng]);
+      polyline.setLatLngs(path);
+
+      // 地图跟随
+      if (firstFix) {
+        map.setView([lat, lng], 19);
+        firstFix = false;
+      } else {
+        map.panTo([lat, lng]);
+      }
+    },
+    (error) => {
+      console.error(error);
+      alert('GPS error: ' + error.message);
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 5000
+    }
+  );
+</script>
+
+</body>
+</html>
